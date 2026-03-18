@@ -82,25 +82,12 @@ async function loadMemories() {
         // Parse JSON
         const dataPackage = JSON.parse(jsonString);
         const memories = dataPackage.memories || [];
-        const created = dataPackage.created;
-
         if (memories.length === 0) {
             content.innerHTML = '<div class="error-message">❌ No memories found in this link.</div>';
             return;
         }
 
-        // Display creation time
-        const createdDate = new Date(created).toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
-        let html = `<div class="timestamp">✨ Shared on ${createdDate}</div>`;
-        html += '<div class="gallery">';
+        let html = '<div class="gallery">';
 
         // Render each memory
         memories.forEach((memory, index) => {
