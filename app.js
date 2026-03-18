@@ -326,10 +326,21 @@ async function generateLink() {
 
         let compressed;
         try {
-            compressed = LZString.compressToEncodedURIComponent(jsonString);
+            // Use compressToBase64URI instead - more stable than compressToEncodedURIComponent
+            compressed = LZString.compressToBase64URI(jsonString);
+            if (!compressed || compressed.length === 0) {
+                // Fallback to regular compression
+                compressed = LZString.compressToEncodedURIComponent(jsonString);
+            }
         } catch (lzError) {
             console.error('LZ-String compression error:', lzError);
-            throw new Error('Compression failed: ' + lzError.message);
+            // Last resort: use uncompressed base64
+            try {
+                compressed = btoa(unescape(encodeURIComponent(jsonString)));
+                console.log('Using base64 fallback');
+            } catch (e) {
+                throw new Error('All compression methods failed: ' + lzError.message);
+            }
         }
 
         if (!compressed) {

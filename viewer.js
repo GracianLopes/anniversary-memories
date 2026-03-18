@@ -20,9 +20,31 @@ function loadMemories() {
             throw new Error('Compression library failed to load');
         }
 
-        // Decompress data
-        const jsonString = LZString.decompressFromEncodedURIComponent(compressedData);
-        
+        // Decompress data - try multiple methods for compatibility
+        let jsonString = null;
+
+        // Try Base64URI first (new method)
+        try {
+            jsonString = LZString.decompressFromBase64URI(compressedData);
+        } catch (e) {
+            console.log('Base64URI decompress failed, trying EncodedURIComponent');
+        }
+
+        // Fallback to EncodedURIComponent (old method)
+        if (!jsonString) {
+            jsonString = LZString.decompressFromEncodedURIComponent(compressedData);
+        }
+
+        // Last resort: try base64 decode
+        if (!jsonString) {
+            try {
+                jsonString = decodeURIComponent(escape(atob(compressedData)));
+                console.log('Using base64 decompress fallback');
+            } catch (e) {
+                console.log('All decompress methods failed');
+            }
+        }
+
         if (!jsonString) {
             throw new Error('Failed to decompress data');
         }
@@ -54,11 +76,13 @@ function loadMemories() {
         memories.forEach((memory, index) => {
             if (memory.type === 'image') {
                 let captionHtml = '';
+                let captionParam = '';
                 if (memory.caption) {
                     captionHtml = `<div class="image-caption">${escapeHtml(memory.caption)}</div>`;
+                    captionParam = `, '${escapeSingleQuotes(memory.caption)}'`;
                 }
                 html += `
-                    <div class="memory-item image" onclick="previewImage('${escapeSingleQuotes(memory.data)}')">
+                    <div class="memory-item image" onclick="previewImage('${escapeSingleQuotes(memory.data)}'${captionParam})">
                         <div class="image-container">
                             <img src="${memory.data}" alt="Memory ${index + 1}">
                             ${captionHtml}
@@ -86,10 +110,28 @@ function loadMemories() {
 }
 
 // Preview image
-function previewImage(src) {
+function previewImage(src, caption = '') {
     const modal = document.getElementById('previewModal');
     const img = document.getElementById('previewImage');
     img.src = src;
+    
+    // Update or create caption element
+    let captionElement = document.getElementById('previewCaption');
+    if (!captionElement) {
+        captionElement = document.createElement('div');
+        captionElement.id = 'previewCaption';
+        captionElement.className = 'preview-caption';
+        modal.appendChild(captionElement);
+    }
+    
+    // Set caption content
+    if (caption) {
+        captionElement.textContent = caption;
+        captionElement.style.display = 'block';
+    } else {
+        captionElement.style.display = 'none';
+    }
+    
     modal.classList.add('active');
 }
 
