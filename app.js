@@ -319,9 +319,21 @@ async function generateLink() {
             return;
         }
 
-        const compressed = LZString.compressToEncodedURIComponent(jsonString);
+        // Validate JSON string before compression
+        if (!jsonString || jsonString.length === 0) {
+            throw new Error('No data to compress');
+        }
+
+        let compressed;
+        try {
+            compressed = LZString.compressToEncodedURIComponent(jsonString);
+        } catch (lzError) {
+            console.error('LZ-String compression error:', lzError);
+            throw new Error('Compression failed: ' + lzError.message);
+        }
+
         if (!compressed) {
-            throw new Error('Compression failed');
+            throw new Error('Compression failed - empty result');
         }
 
         // Try to create a short link using both methods
