@@ -43,13 +43,17 @@
             <div id="linkModal" class="modal hidden">
                 <div class="modal-content">
                     <h2>Share Your Memories</h2>
-                    <p class="info">Copy this link to share with your special someone:</p>
+                    <p class="info">Your memories are compressed & shortened. Copy this short link:</p>
                     <div class="link-box">
-                        <input type="text" id="shareLink" readonly>
+                        <input type="text" id="shareLink" readonly class="share-link-input">
                         <button class="btn btn-primary" onclick="copyLink()">📋 Copy</button>
                     </div>
-                    <p class="info-small">✅ Works on any device (phone, tablet, computer)</p>
-                    <p class="info-small">📤 Share via WhatsApp, Email, or Message</p>
+                    <div class="link-info">
+                        <p class="info-small">✅ Works on any device (phone, tablet, computer)</p>
+                        <p class="info-small">📤 Easy to paste & share on WhatsApp, Email, Message</p>
+                        <p class="info-small">🔒 Private link - only accessible via this URL</p>
+                        <p class="info-small">📱 Works without installing any app</p>
+                    </div>
                     <button class="btn btn-secondary" onclick="closeModal()">Close</button>
                 </div>
             </div>

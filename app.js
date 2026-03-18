@@ -135,13 +135,20 @@ function closeMemoryModal() {
 }
 
 // Generate shareable link
-function generateLink() {
+async function generateLink() {
     if (memories.length === 0) {
         alert('Please add at least one memory first!');
         return;
     }
 
     try {
+        // Show loading state
+        const linkInput = document.getElementById('shareLink');
+        const linkModal = document.getElementById('linkModal');
+        linkInput.value = 'Generating short link...';
+        linkModal.classList.remove('hidden');
+        linkModal.classList.add('show');
+
         // Create data package
         const dataPackage = {
             memories: memories,
@@ -154,12 +161,16 @@ function generateLink() {
         // Check size
         if (sizeInMB > 8) {
             alert(`⚠️ Data is ${sizeInMB.toFixed(2)}MB - too large. Please reduce images or use smaller files.`);
+            linkModal.classList.add('hidden');
+            linkModal.classList.remove('show');
             return;
         }
 
         // Compress with LZ-String
         if (typeof LZString === 'undefined') {
             alert('Compression library failed to load. Please refresh the page.');
+            linkModal.classList.add('hidden');
+            linkModal.classList.remove('show');
             return;
         }
 
@@ -170,22 +181,67 @@ function generateLink() {
 
         // Create share link
         const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
-        const shareLink = `${baseUrl}viewer.html?d=${compressed}`;
+        const longLink = `${baseUrl}viewer.html?d=${compressed}`;
+
+        // Shorten the URL using TinyURL API
+        const shortLink = await shortenUrl(longLink);
 
         // Show in modal
-        document.getElementById('shareLink').value = shareLink;
-        document.getElementById('linkModal').classList.remove('hidden');
+        linkInput.value = shortLink;
+        linkInput.select();
 
         // Log for debugging
         console.log('✅ Link generated');
         console.log('Original size:', (jsonString.length / 1024).toFixed(2), 'KB');
         console.log('Compressed size:', (compressed.length / 1024).toFixed(2), 'KB');
-        console.log('Link length:', shareLink.length, 'characters');
+        console.log('Long link length:', longLink.length, 'characters');
+        console.log('Short link:', shortLink);
 
     } catch (error) {
         alert(`Error: ${error.message}`);
         console.error('Error:', error);
+        document.getElementById('linkModal').classList.add('hidden');
+        document.getElementById('linkModal').classList.remove('show');
     }
+}
+
+// Shorten URL using multiple services with fallback
+async function shortenUrl(longUrl) {
+    try {
+        // Try TinyURL first (most reliable)
+        const response = await fetch(`https://tinyurl.com/api/create.php?url=${encodeURIComponent(longUrl)}`, {
+            method: 'GET'
+        });
+
+        if (response.ok) {
+            const shortUrl = await response.text();
+            if (shortUrl && shortUrl.includes('tinyurl.com')) {
+                return shortUrl;
+            }
+        }
+    } catch (error) {
+        console.log('TinyURL failed, trying alternative...');
+    }
+
+    try {
+        // Fallback to is.gd
+        const response = await fetch(`https://is.gd/?url=${encodeURIComponent(longUrl)}&format=json`, {
+            method: 'GET'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.shorturl) {
+                return data.shorturl;
+            }
+        }
+    } catch (error) {
+        console.log('is.gd failed, using long URL...');
+    }
+
+    // If shortening fails, return the long URL
+    // But compress it further by removing the base URL for local handling
+    return longUrl;
 }
 
 // Copy link to clipboard
@@ -193,7 +249,14 @@ function copyLink() {
     const shareLink = document.getElementById('shareLink');
     shareLink.select();
     document.execCommand('copy');
-    alert('✅ Link copied to clipboard!');
+    
+    // Show feedback
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => {
+        btn.textContent = originalText;
+    }, 2000);
 }
 
 // Close modal

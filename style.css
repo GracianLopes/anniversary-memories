@@ -299,6 +299,27 @@ h1 {
     font-family: monospace;
     font-size: 0.85em;
     word-break: break-all;
+    background: #f9f9f9;
+    transition: background 0.2s;
+}
+
+#shareLink:focus {
+    outline: none;
+    border-color: #667eea;
+    background: #fff;
+}
+
+.share-link-input {
+    color: #667eea;
+    font-weight: 600;
+}
+
+.link-info {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+    border-left: 4px solid #667eea;
 }
 
 /* Preview Modal */
