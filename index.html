@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -42,6 +43,14 @@
                         <input type="text" id="shareLink" readonly class="share-link-input">
                         <button class="btn btn-primary" onclick="copyLink()">📋 Copy</button>
                     </div>
+                    
+                    <!-- QR Code Option -->
+                    <div class="qr-section">
+                        <p class="info">Or scan this QR code:</p>
+                        <div id="qrCode" class="qr-container"></div>
+                        <button class="btn btn-secondary" onclick="downloadQR()">📥 Download QR</button>
+                    </div>
+                    
                     <div class="link-info">
                         <p class="info-small">✅ Works on any device (phone, tablet, computer)</p>
                         <p class="info-small">📤 Easy to paste & share on WhatsApp, Email, Message</p>
