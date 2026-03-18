@@ -280,7 +280,7 @@ function closeMemoryModal() {
 }
 
 // Build viewer URL that works for index.html, directory URLs, and file://
-function buildViewerUrl(compressed) {
+function buildViewerUrl(params) {
     const baseUrl = new URL(window.location.href);
     baseUrl.hash = '';
     baseUrl.search = '';
@@ -291,8 +291,49 @@ function buildViewerUrl(compressed) {
     }
 
     const viewerUrl = new URL('viewer.html', baseUrl);
-    viewerUrl.searchParams.set('d', compressed);
+    Object.entries(params).forEach(([key, value]) => {
+        viewerUrl.searchParams.set(key, value);
+    });
     return viewerUrl.toString();
+}
+
+function generateShareId() {
+    if (window.crypto && window.crypto.getRandomValues) {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        let binary = '';
+        for (const b of bytes) {
+            binary += String.fromCharCode(b);
+        }
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+    return Math.random().toString(36).slice(2, 14) + Date.now().toString(36).slice(-4);
+}
+
+async function saveShareData(compressed) {
+    if (typeof supabaseClient === 'undefined') {
+        throw new Error('Storage not configured. Supabase client failed to load.');
+    }
+
+    const maxAttempts = 3;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const id = generateShareId();
+        const { error } = await supabaseClient
+            .from('shares')
+            .insert({ id, data: compressed });
+
+        if (!error) {
+            return id;
+        }
+
+        if (error.code === '23505') {
+            continue;
+        }
+
+        throw new Error(`Failed to save share data: ${error.message}`);
+    }
+
+    throw new Error('Failed to generate a unique share link. Please try again.');
 }
 
 // Generate shareable link
@@ -363,8 +404,10 @@ async function generateLink() {
             throw new Error('Compression failed - empty result');
         }
 
-        // Build viewer URL
-        const longLink = buildViewerUrl(compressed);
+        // Save to backend and build share URL
+        linkInput.value = 'Uploading memories...';
+        const shareId = await saveShareData(compressed);
+        const longLink = buildViewerUrl({ id: shareId });
 
         // Try to create a short link using multiple services (for easy sharing on any platform)
         const shortLink = await shortenUrl(longLink);

@@ -5,8 +5,41 @@ function getUrlParameter(name) {
 }
 
 // Load and display memories
-function loadMemories() {
-    const compressedData = getUrlParameter('d');
+async function loadMemories() {
+    const shareId = getUrlParameter('id');
+    const legacyData = getUrlParameter('d');
+    let compressedData = null;
+
+    if (shareId) {
+        if (typeof supabaseClient === 'undefined') {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="error-message">❌ Storage not configured. Supabase client failed to load.</div>';
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('shares')
+            .select('data')
+            .eq('id', shareId)
+            .maybeSingle();
+
+        if (error) {
+            const content = document.getElementById('content');
+            content.innerHTML = `<div class="error-message">❌ Unable to load memories: ${escapeHtml(error.message)}</div>`;
+            return;
+        }
+
+        if (!data || !data.data) {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="error-message">❌ This link is invalid or expired.</div>';
+            return;
+        }
+
+        compressedData = data.data;
+    } else {
+        compressedData = legacyData;
+    }
+
     const normalizedData = compressedData ? compressedData.replace(/ /g, '+') : null;
     const content = document.getElementById('content');
 
