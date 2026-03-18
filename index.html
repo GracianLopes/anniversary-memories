@@ -58,7 +58,19 @@
             <div id="previewModal" class="modal hidden">
                 <div class="preview-content">
                     <span class="close" onclick="closePreview()">&times;</span>
-                    <img id="previewImage" src="">
+                    <img id="previewImage" src="" class="modal-image">
+                </div>
+            </div>
+
+            <!-- Memory Edit Modal -->
+            <div id="memoryModal" class="modal hidden">
+                <div class="modal-content memory-edit-modal">
+                    <h2>Edit Memory</h2>
+                    <textarea id="memoryText" class="memory-textarea" placeholder="Edit your memory..." maxlength="500"></textarea>
+                    <div class="memory-modal-buttons">
+                        <button class="btn btn-primary" onclick="saveMemory()">💾 Save</button>
+                        <button class="btn btn-secondary" onclick="closeMemoryModal()">Cancel</button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,5 +1,26 @@
-// Store memories in array
-let memories = [];
+// Store memories in array with 4 sample memories
+let memories = [
+    {
+        type: 'text',
+        data: '💕 Our First Meeting - A moment that changed everything',
+        timestamp: new Date().toISOString()
+    },
+    {
+        type: 'text',
+        data: '🌹 The Day You Said Yes - The happiest moment of my life',
+        timestamp: new Date().toISOString()
+    },
+    {
+        type: 'text',
+        data: '🎂 Celebrating Together - Every moment with you is special',
+        timestamp: new Date().toISOString()
+    },
+    {
+        type: 'text',
+        data: '❤️ Forever With You - Our love story continues',
+        timestamp: new Date().toISOString()
+    }
+];
 
 // Image input handler
 document.getElementById('imageInput').addEventListener('change', function(e) {
@@ -49,7 +70,14 @@ function renderGallery() {
             img.onclick = () => previewImage(memory.data);
             item.appendChild(img);
         } else {
-            item.textContent = memory.data;
+            const textContent = document.createElement('div');
+            textContent.className = 'memory-text-content';
+            textContent.textContent = memory.data;
+            textContent.onclick = (e) => {
+                e.stopPropagation();
+                showMemoryModal(memory, index);
+            };
+            item.appendChild(textContent);
         }
 
         // Delete button
@@ -72,11 +100,38 @@ function previewImage(src) {
     const modal = document.getElementById('previewModal');
     document.getElementById('previewImage').src = src;
     modal.classList.remove('hidden');
+    modal.classList.add('show');
 }
 
-// Close preview
-function closePreview() {
-    document.getElementById('previewModal').classList.add('hidden');
+// Show memory modal for editing
+function showMemoryModal(memory, index) {
+    const modal = document.getElementById('memoryModal');
+    document.getElementById('memoryText').value = memory.data;
+    document.getElementById('memoryText').dataset.index = index;
+    modal.classList.remove('hidden');
+    modal.classList.add('show');
+}
+
+// Save edited memory
+function saveMemory() {
+    const index = parseInt(document.getElementById('memoryText').dataset.index);
+    const newText = document.getElementById('memoryText').value.trim();
+    
+    if (!newText) {
+        alert('Memory text cannot be empty!');
+        return;
+    }
+
+    memories[index].data = newText;
+    closeMemoryModal();
+    renderGallery();
+}
+
+// Close memory modal
+function closeMemoryModal() {
+    const modal = document.getElementById('memoryModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('show');
 }
 
 // Generate shareable link
@@ -155,12 +210,12 @@ function clearAll() {
     renderGallery();
 }
 
-// Close preview when clicking outside
-document.getElementById('previewModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closePreview();
-    }
-});
+// Close preview
+function closePreview() {
+    const modal = document.getElementById('previewModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('show');
+}
 
 // Allow Enter key to add text memory
 document.getElementById('customText').addEventListener('keypress', function(e) {
@@ -168,3 +223,20 @@ document.getElementById('customText').addEventListener('keypress', function(e) {
         addCustomMemory();
     }
 });
+
+// Close preview when clicking outside
+document.getElementById('previewModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closePreview();
+    }
+});
+
+// Close memory modal when clicking outside
+document.getElementById('memoryModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeMemoryModal();
+    }
+});
+
+// Initialize gallery on page load
+document.addEventListener('DOMContentLoaded', renderGallery);
