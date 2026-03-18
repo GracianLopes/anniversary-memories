@@ -144,7 +144,7 @@ function renderGallery() {
             
             const img = document.createElement('img');
             img.src = memory.data;
-            img.onclick = () => previewImage(memory.data);
+            img.onclick = () => previewImage(memory.data, memory.caption);
             imgContainer.appendChild(img);
             
             // Add caption if it exists
@@ -196,9 +196,28 @@ function renderGallery() {
 }
 
 // Preview image
-function previewImage(src) {
+function previewImage(src, caption = '') {
     const modal = document.getElementById('previewModal');
     document.getElementById('previewImage').src = src;
+    
+    // Update or create caption element
+    let captionElement = document.getElementById('previewCaption');
+    if (!captionElement) {
+        captionElement = document.createElement('div');
+        captionElement.id = 'previewCaption';
+        captionElement.className = 'preview-caption';
+        const previewContent = modal.querySelector('.preview-content');
+        previewContent.appendChild(captionElement);
+    }
+    
+    // Set caption content
+    if (caption) {
+        captionElement.textContent = caption;
+        captionElement.style.display = 'block';
+    } else {
+        captionElement.style.display = 'none';
+    }
+    
     modal.classList.remove('hidden');
     modal.classList.add('show');
 }
@@ -339,17 +358,20 @@ async function generateLink() {
 
 // Shorten URL using multiple services with better fallbacks
 async function shortenUrl(longUrl) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
     try {
         // Try multiple shorteners in order of reliability
         const shorteners = [
             {
                 name: 'TinyURL',
-                url: `https://tinyurl.com/api/create.php?url=${encodeURIComponent(longUrl)}`,
+                url: `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`,
                 extract: (response) => response.trim()
             },
             {
                 name: 'is.gd',
-                url: `https://is.gd/?url=${encodeURIComponent(longUrl)}&format=json`,
+                url: `https://is.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`,
                 extract: async (response) => {
                     const data = await response.json();
                     return data.shorturl;
@@ -357,7 +379,7 @@ async function shortenUrl(longUrl) {
             },
             {
                 name: 'v.gd',
-                url: `https://v.gd/?url=${encodeURIComponent(longUrl)}&format=json`,
+                url: `https://v.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`,
                 extract: async (response) => {
                     const data = await response.json();
                     return data.shorturl;
@@ -367,7 +389,14 @@ async function shortenUrl(longUrl) {
 
         for (const shortener of shorteners) {
             try {
-                const response = await fetch(shortener.url, { method: 'GET' });
+                const response = await fetch(shortener.url, {
+                    method: 'GET',
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json, text/plain'
+                    }
+                });
+                clearTimeout(timeoutId);
                 if (response.ok) {
                     const shortUrl = await shortener.extract(response);
                     if (shortUrl && shortUrl.length > 0 && shortUrl.length < longUrl.length) {
@@ -376,12 +405,13 @@ async function shortenUrl(longUrl) {
                     }
                 }
             } catch (e) {
-                console.log(`${shortener.name} failed, trying next...`);
+                console.log(`${shortener.name} failed: ${e.message}, trying next...`);
                 continue;
             }
         }
     } catch (error) {
-        console.log('All shorteners failed');
+        clearTimeout(timeoutId);
+        console.log('All shorteners failed:', error.message);
     }
 
     // If all shorteners fail, return long URL
@@ -391,13 +421,12 @@ async function shortenUrl(longUrl) {
 }
 
 // Copy link to clipboard
-function copyLink() {
+function copyLink(btn) {
     const shareLink = document.getElementById('shareLink');
     shareLink.select();
     document.execCommand('copy');
-    
+
     // Show feedback
-    const btn = event.target;
     const originalText = btn.textContent;
     btn.textContent = '✅ Copied!';
     setTimeout(() => {
