@@ -40,10 +40,49 @@ document.getElementById('imageInput').addEventListener('change', function(e) {
     reader.readAsDataURL(file);
 });
 
-// Add custom text memory
-function addCustomMemory() {
-    const text = document.getElementById('customText').value.trim();
-    if (!text) return;
+// Show dialog to choose memory type
+function showAddMemoryDialog() {
+    const modal = document.getElementById('addMemoryModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('show');
+}
+
+// Close add memory dialog
+function closeAddMemoryDialog() {
+    const modal = document.getElementById('addMemoryModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('show');
+}
+
+// Add image memory
+function addImageMemory() {
+    closeAddMemoryDialog();
+    document.getElementById('imageInput').click();
+}
+
+// Show text memory input
+function showTextMemoryInput() {
+    closeAddMemoryDialog();
+    const modal = document.getElementById('textMemoryModal');
+    document.getElementById('newMemoryText').value = '';
+    modal.classList.remove('hidden');
+    modal.classList.add('show');
+}
+
+// Close text memory modal
+function closeTextMemoryModal() {
+    const modal = document.getElementById('textMemoryModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('show');
+}
+
+// Save new text memory
+function saveNewMemory() {
+    const text = document.getElementById('newMemoryText').value.trim();
+    if (!text) {
+        alert('Please write something!');
+        return;
+    }
 
     memories.push({
         type: 'text',
@@ -51,7 +90,7 @@ function addCustomMemory() {
         timestamp: new Date().toISOString()
     });
 
-    document.getElementById('customText').value = '';
+    closeTextMemoryModal();
     renderGallery();
 }
 
@@ -262,6 +301,7 @@ function copyLink() {
 // Close modal
 function closeModal() {
     document.getElementById('linkModal').classList.add('hidden');
+    document.getElementById('linkModal').classList.remove('show');
 }
 
 // Clear all memories
@@ -298,6 +338,20 @@ document.getElementById('previewModal').addEventListener('click', function(e) {
 document.getElementById('memoryModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeMemoryModal();
+    }
+});
+
+// Close add memory modal when clicking outside
+document.getElementById('addMemoryModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAddMemoryDialog();
+    }
+});
+
+// Close text memory modal when clicking outside
+document.getElementById('textMemoryModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTextMemoryModal();
     }
 });
 

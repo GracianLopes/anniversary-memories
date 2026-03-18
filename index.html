@@ -22,15 +22,9 @@
             <!-- Add Memory Section -->
             <div class="input-section">
                 <input type="file" id="imageInput" accept="image/*" style="display: none;">
-                <button class="btn btn-primary" onclick="document.getElementById('imageInput').click()">
+                <button class="btn btn-primary" onclick="showAddMemoryDialog()">
                     ➕ Add Memory
                 </button>
-            </div>
-
-            <!-- Custom Text Input -->
-            <div class="input-section">
-                <input type="text" id="customText" placeholder="Add a caption or message..." maxlength="200">
-                <button class="btn btn-secondary" onclick="addCustomMemory()">Add Text</button>
             </div>
 
             <!-- Action Buttons -->
@@ -74,6 +68,30 @@
                     <div class="memory-modal-buttons">
                         <button class="btn btn-primary" onclick="saveMemory()">💾 Save</button>
                         <button class="btn btn-secondary" onclick="closeMemoryModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Memory Dialog Modal -->
+            <div id="addMemoryModal" class="modal hidden">
+                <div class="modal-content memory-edit-modal">
+                    <h2>➕ Add a New Memory</h2>
+                    <p class="info">What type of memory would you like to add?</p>
+                    <div class="add-memory-buttons">
+                        <button class="btn btn-primary" onclick="addImageMemory()">📸 Add Image</button>
+                        <button class="btn btn-secondary" onclick="showTextMemoryInput()">✍️ Add Text</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Text Memory Input Modal -->
+            <div id="textMemoryModal" class="modal hidden">
+                <div class="modal-content memory-edit-modal">
+                    <h2>✍️ Add Text Memory</h2>
+                    <textarea id="newMemoryText" class="memory-textarea" placeholder="Write your special memory or message..." maxlength="500"></textarea>
+                    <div class="memory-modal-buttons">
+                        <button class="btn btn-primary" onclick="saveNewMemory()">➕ Add Memory</button>
+                        <button class="btn btn-secondary" onclick="closeTextMemoryModal()">Cancel</button>
                     </div>
                 </div>
             </div>

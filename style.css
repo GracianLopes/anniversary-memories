@@ -404,3 +404,14 @@ h1 {
 .memory-modal-buttons .btn {
     flex: 1;
 }
+
+.add-memory-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.add-memory-buttons .btn {
+    padding: 15px 20px;
+    font-size: 1em;
+}
