@@ -53,9 +53,16 @@ function loadMemories() {
         // Render each memory
         memories.forEach((memory, index) => {
             if (memory.type === 'image') {
+                let captionHtml = '';
+                if (memory.caption) {
+                    captionHtml = `<div class="image-caption">${escapeHtml(memory.caption)}</div>`;
+                }
                 html += `
                     <div class="memory-item image" onclick="previewImage('${escapeSingleQuotes(memory.data)}')">
-                        <img src="${memory.data}" alt="Memory ${index + 1}">
+                        <div class="image-container">
+                            <img src="${memory.data}" alt="Memory ${index + 1}">
+                            ${captionHtml}
+                        </div>
                     </div>
                 `;
             } else if (memory.type === 'text') {

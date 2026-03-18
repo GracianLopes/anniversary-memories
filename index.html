@@ -95,6 +95,31 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Image Caption Modal -->
+            <div id="imageCaptionModal" class="modal hidden">
+                <div class="modal-content memory-edit-modal">
+                    <h2>📸 Add Caption to Image</h2>
+                    <p class="info">What does this image mean to you?</p>
+                    <textarea id="imageCaption" class="memory-textarea" placeholder="Write what this moment means to you..." maxlength="300"></textarea>
+                    <div class="memory-modal-buttons">
+                        <button class="btn btn-primary" onclick="saveImageWithCaption()">💾 Save Image</button>
+                        <button class="btn btn-secondary" onclick="closeImageCaptionDialog()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Image Caption Modal -->
+            <div id="editImageCaptionModal" class="modal hidden">
+                <div class="modal-content memory-edit-modal">
+                    <h2>✏️ Edit Image Caption</h2>
+                    <textarea id="editImageCaption" class="memory-textarea" placeholder="Write what this moment means to you..." maxlength="300"></textarea>
+                    <div class="memory-modal-buttons">
+                        <button class="btn btn-primary" onclick="saveImageCaption()">💾 Save</button>
+                        <button class="btn btn-secondary" onclick="closeEditImageCaptionModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

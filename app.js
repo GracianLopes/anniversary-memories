@@ -29,16 +29,51 @@ document.getElementById('imageInput').addEventListener('change', function(e) {
 
     const reader = new FileReader();
     reader.onload = function(event) {
-        memories.push({
-            type: 'image',
-            data: event.target.result,
-            timestamp: new Date().toISOString()
-        });
-        renderGallery();
+        // Store image data temporarily
+        sessionStorage.setItem('tempImageData', event.target.result);
+        // Show caption dialog
+        showImageCaptionDialog();
         this.value = ''; // Reset input
     };
     reader.readAsDataURL(file);
 });
+
+// Show image caption dialog
+function showImageCaptionDialog() {
+    const modal = document.getElementById('imageCaptionModal');
+    document.getElementById('imageCaption').value = '';
+    modal.classList.remove('hidden');
+    modal.classList.add('show');
+}
+
+// Close image caption dialog
+function closeImageCaptionDialog() {
+    const modal = document.getElementById('imageCaptionModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('show');
+    sessionStorage.removeItem('tempImageData');
+}
+
+// Save image with caption
+function saveImageWithCaption() {
+    const caption = document.getElementById('imageCaption').value.trim();
+    const imageData = sessionStorage.getItem('tempImageData');
+    
+    if (!imageData) {
+        alert('Error: Image data lost. Please try again.');
+        return;
+    }
+
+    memories.push({
+        type: 'image',
+        data: imageData,
+        caption: caption || '',
+        timestamp: new Date().toISOString()
+    });
+
+    closeImageCaptionDialog();
+    renderGallery();
+}
 
 // Show dialog to choose memory type
 function showAddMemoryDialog() {
@@ -104,10 +139,36 @@ function renderGallery() {
         item.className = `memory-item ${memory.type}`;
 
         if (memory.type === 'image') {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'image-container';
+            
             const img = document.createElement('img');
             img.src = memory.data;
             img.onclick = () => previewImage(memory.data);
-            item.appendChild(img);
+            imgContainer.appendChild(img);
+            
+            // Add caption if it exists
+            if (memory.caption) {
+                const caption = document.createElement('div');
+                caption.className = 'image-caption';
+                caption.textContent = memory.caption;
+                caption.onclick = (e) => {
+                    e.stopPropagation();
+                    showEditImageCaptionModal(memory, index);
+                };
+                imgContainer.appendChild(caption);
+            } else {
+                const emptyCaption = document.createElement('div');
+                emptyCaption.className = 'image-caption empty-caption';
+                emptyCaption.textContent = 'Click to add caption...';
+                emptyCaption.onclick = (e) => {
+                    e.stopPropagation();
+                    showEditImageCaptionModal(memory, index);
+                };
+                imgContainer.appendChild(emptyCaption);
+            }
+            
+            item.appendChild(imgContainer);
         } else {
             const textContent = document.createElement('div');
             textContent.className = 'memory-text-content';
@@ -149,6 +210,32 @@ function showMemoryModal(memory, index) {
     document.getElementById('memoryText').dataset.index = index;
     modal.classList.remove('hidden');
     modal.classList.add('show');
+}
+
+// Show edit image caption modal
+function showEditImageCaptionModal(memory, index) {
+    const modal = document.getElementById('editImageCaptionModal');
+    document.getElementById('editImageCaption').value = memory.caption || '';
+    document.getElementById('editImageCaption').dataset.index = index;
+    modal.classList.remove('hidden');
+    modal.classList.add('show');
+}
+
+// Close edit image caption modal
+function closeEditImageCaptionModal() {
+    const modal = document.getElementById('editImageCaptionModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('show');
+}
+
+// Save edited image caption
+function saveImageCaption() {
+    const index = parseInt(document.getElementById('editImageCaption').dataset.index);
+    const newCaption = document.getElementById('editImageCaption').value.trim();
+    
+    memories[index].caption = newCaption;
+    closeEditImageCaptionModal();
+    renderGallery();
 }
 
 // Save edited memory
@@ -352,6 +439,20 @@ document.getElementById('addMemoryModal').addEventListener('click', function(e) 
 document.getElementById('textMemoryModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeTextMemoryModal();
+    }
+});
+
+// Close image caption modal when clicking outside
+document.getElementById('imageCaptionModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeImageCaptionDialog();
+    }
+});
+
+// Close edit image caption modal when clicking outside
+document.getElementById('editImageCaptionModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditImageCaptionModal();
     }
 });
 
