@@ -143,6 +143,7 @@ async function loadMemories() {
 function previewImage(src, caption = '') {
     const modal = document.getElementById('previewModal');
     const img = document.getElementById('previewImage');
+    const content = modal.querySelector('.preview-content') || modal;
     img.src = src;
     
     // Update or create caption element
@@ -151,7 +152,9 @@ function previewImage(src, caption = '') {
         captionElement = document.createElement('div');
         captionElement.id = 'previewCaption';
         captionElement.className = 'preview-caption';
-        modal.appendChild(captionElement);
+        content.appendChild(captionElement);
+    } else if (captionElement.parentElement !== content) {
+        content.appendChild(captionElement);
     }
     
     // Set caption content
