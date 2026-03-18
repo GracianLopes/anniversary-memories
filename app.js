@@ -511,21 +511,24 @@ function generateQRCode(url) {
         return;
     }
 
-    // QR codes have practical size limits; skip if too long
-    const maxQrLength = 1800;
-    if (url.length > maxQrLength) {
+    // QR codes have practical size limits; try to generate with lower correction first
+    const hardLimit = 2950; // Rough max for QR v40-L in bytes/characters
+    if (url.length > hardLimit) {
         qrContainer.classList.add('qr-error');
         qrContainer.textContent = 'QR code too large to generate. Try fewer photos or a shorter link.';
         return;
     }
 
-    const correctionLevel = url.length > 800 ? QRCode.CorrectLevel.L : QRCode.CorrectLevel.H;
+    const correctionLevel = url.length > 1200 ? QRCode.CorrectLevel.L : QRCode.CorrectLevel.H;
+    let size = 200;
+    if (url.length > 1200) size = 240;
+    if (url.length > 2000) size = 280;
 
     try {
         new QRCode(qrContainer, {
             text: url,
-            width: 200,
-            height: 200,
+            width: size,
+            height: size,
             colorDark: '#ff69b4',
             colorLight: '#fff',
             correctLevel: correctionLevel
