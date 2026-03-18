@@ -485,10 +485,11 @@ function closePreview() {
     modal.classList.remove('show');
 }
 
-// Allow Enter key to add text memory
-document.getElementById('customText').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        addCustomMemory();
+// Allow Enter key to add text memory (when text memory modal is open)
+document.getElementById('newMemoryText').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        saveNewMemory();
     }
 });
 
