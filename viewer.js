@@ -7,6 +7,7 @@ function getUrlParameter(name) {
 // Load and display memories
 function loadMemories() {
     const compressedData = getUrlParameter('d');
+    const normalizedData = compressedData ? compressedData.replace(/ /g, '+') : null;
     const content = document.getElementById('content');
 
     if (!compressedData) {
@@ -23,23 +24,19 @@ function loadMemories() {
         // Decompress data - try multiple methods for compatibility
         let jsonString = null;
 
-        // Try Base64URI first (new method)
-        try {
-            jsonString = LZString.decompressFromBase64URI(compressedData);
-        } catch (e) {
-            console.log('Base64URI decompress failed, trying EncodedURIComponent');
-        }
+        // Primary: EncodedURIComponent (current method)
+        jsonString = LZString.decompressFromEncodedURIComponent(normalizedData);
 
-        // Fallback to EncodedURIComponent (old method)
+        // Fallback: Base64 (legacy)
         if (!jsonString) {
-            jsonString = LZString.decompressFromEncodedURIComponent(compressedData);
+            jsonString = LZString.decompressFromBase64(normalizedData);
         }
 
-        // Last resort: try base64 decode
+        // Last resort: plain base64 (uncompressed JSON fallback)
         if (!jsonString) {
             try {
-                jsonString = decodeURIComponent(escape(atob(compressedData)));
-                console.log('Using base64 decompress fallback');
+                jsonString = decodeURIComponent(escape(atob(normalizedData)));
+                console.log('Using base64 JSON fallback');
             } catch (e) {
                 console.log('All decompress methods failed');
             }

@@ -279,6 +279,22 @@ function closeMemoryModal() {
     modal.classList.remove('show');
 }
 
+// Build viewer URL that works for index.html, directory URLs, and file://
+function buildViewerUrl(compressed) {
+    const baseUrl = new URL(window.location.href);
+    baseUrl.hash = '';
+    baseUrl.search = '';
+
+    // If path doesn't end with "/" or ".html", treat it like a directory
+    if (!baseUrl.pathname.endsWith('/') && !baseUrl.pathname.endsWith('.html')) {
+        baseUrl.pathname += '/';
+    }
+
+    const viewerUrl = new URL('viewer.html', baseUrl);
+    viewerUrl.searchParams.set('d', compressed);
+    return viewerUrl.toString();
+}
+
 // Generate shareable link
 async function generateLink() {
     if (memories.length === 0) {
@@ -326,11 +342,11 @@ async function generateLink() {
 
         let compressed;
         try {
-            // Use compressToBase64URI instead - more stable than compressToEncodedURIComponent
-            compressed = LZString.compressToBase64URI(jsonString);
+            // Use compressToEncodedURIComponent - most reliable for URL params
+            compressed = LZString.compressToEncodedURIComponent(jsonString);
             if (!compressed || compressed.length === 0) {
-                // Fallback to regular compression
-                compressed = LZString.compressToEncodedURIComponent(jsonString);
+                // Fallback to base64
+                compressed = LZString.compressToBase64(jsonString);
             }
         } catch (lzError) {
             console.error('LZ-String compression error:', lzError);
@@ -347,21 +363,19 @@ async function generateLink() {
             throw new Error('Compression failed - empty result');
         }
 
-        // Try to create a short link using both methods
-        let shortLink = null;
+        // Build viewer URL
+        const longLink = buildViewerUrl(compressed);
 
-        // Method 1: Try URL shortening services (for easy sharing on any platform)
-        const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
-        const longLink = `${baseUrl}viewer.html?d=${compressed}`;
-        
-        shortLink = await shortenUrl(longLink);
+        // Try to create a short link using multiple services (for easy sharing on any platform)
+        const shortLink = await shortenUrl(longLink);
+        const bestLink = shortLink && shortLink.length < longLink.length ? shortLink : longLink;
 
         // Show in modal
-        linkInput.value = shortLink;
+        linkInput.value = bestLink;
         linkInput.select();
 
         // Generate QR code for easy scanning
-        generateQRCode(shortLink);
+        generateQRCode(bestLink);
 
         // Log for debugging
         console.log('✅ Link generated');
@@ -381,45 +395,67 @@ async function generateLink() {
 
 // Shorten URL using multiple services with better fallbacks
 async function shortenUrl(longUrl) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
     try {
-        // Try multiple shorteners in order of reliability
+        // Try multiple shorteners in order of reliability/CORS support
         const shorteners = [
             {
-                name: 'TinyURL',
-                url: `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`,
-                extract: (response) => response.trim()
+                name: 'shrtco.de',
+                url: `https://api.shrtco.de/v2/shorten?url=${encodeURIComponent(longUrl)}`,
+                method: 'GET',
+                extract: async (response) => {
+                    const data = await response.json();
+                    return data && data.ok && data.result ? data.result.full_short_link : null;
+                }
+            },
+            {
+                name: 'CleanURI',
+                url: 'https://cleanuri.com/api/v1/shorten',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `url=${encodeURIComponent(longUrl)}`,
+                extract: async (response) => {
+                    const data = await response.json();
+                    return data ? data.result_url : null;
+                }
             },
             {
                 name: 'is.gd',
-                url: `https://is.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`,
-                extract: async (response) => {
-                    const data = await response.json();
-                    return data.shorturl;
-                }
+                url: `https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`,
+                method: 'GET',
+                extract: async (response) => (await response.text()).trim()
             },
             {
                 name: 'v.gd',
-                url: `https://v.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`,
-                extract: async (response) => {
-                    const data = await response.json();
-                    return data.shorturl;
-                }
+                url: `https://v.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`,
+                method: 'GET',
+                extract: async (response) => (await response.text()).trim()
+            },
+            {
+                name: 'TinyURL',
+                url: `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`,
+                method: 'GET',
+                extract: async (response) => (await response.text()).trim()
             }
         ];
 
         for (const shortener of shorteners) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 7000); // 7 second timeout per provider
+
             try {
                 const response = await fetch(shortener.url, {
-                    method: 'GET',
-                    signal: controller.signal,
+                    method: shortener.method,
                     headers: {
-                        'Accept': 'application/json, text/plain'
-                    }
+                        'Accept': 'application/json, text/plain',
+                        ...(shortener.headers || {})
+                    },
+                    body: shortener.body,
+                    signal: controller.signal
                 });
                 clearTimeout(timeoutId);
+
                 if (response.ok) {
                     const shortUrl = await shortener.extract(response);
                     if (shortUrl && shortUrl.length > 0 && shortUrl.length < longUrl.length) {
@@ -428,12 +464,12 @@ async function shortenUrl(longUrl) {
                     }
                 }
             } catch (e) {
+                clearTimeout(timeoutId);
                 console.log(`${shortener.name} failed: ${e.message}, trying next...`);
                 continue;
             }
         }
     } catch (error) {
-        clearTimeout(timeoutId);
         console.log('All shorteners failed:', error.message);
     }
 
@@ -461,27 +497,66 @@ function copyLink(btn) {
 function generateQRCode(url) {
     const qrContainer = document.getElementById('qrCode');
     qrContainer.innerHTML = ''; // Clear previous QR code
-    
-    new QRCode(qrContainer, {
-        text: url,
-        width: 200,
-        height: 200,
-        colorDark: '#ff69b4',
-        colorLight: '#fff',
-        correctLevel: QRCode.CorrectLevel.H
-    });
+    qrContainer.classList.remove('qr-error');
+
+    if (!url) {
+        qrContainer.classList.add('qr-error');
+        qrContainer.textContent = 'QR code unavailable: link is empty.';
+        return;
+    }
+
+    if (typeof QRCode === 'undefined') {
+        qrContainer.classList.add('qr-error');
+        qrContainer.textContent = 'QR library failed to load. Please refresh the page.';
+        return;
+    }
+
+    // QR codes have practical size limits; skip if too long
+    const maxQrLength = 1800;
+    if (url.length > maxQrLength) {
+        qrContainer.classList.add('qr-error');
+        qrContainer.textContent = 'QR code too large to generate. Try fewer photos or a shorter link.';
+        return;
+    }
+
+    const correctionLevel = url.length > 800 ? QRCode.CorrectLevel.L : QRCode.CorrectLevel.H;
+
+    try {
+        new QRCode(qrContainer, {
+            text: url,
+            width: 200,
+            height: 200,
+            colorDark: '#ff69b4',
+            colorLight: '#fff',
+            correctLevel: correctionLevel
+        });
+    } catch (e) {
+        qrContainer.classList.add('qr-error');
+        qrContainer.textContent = 'QR code failed to generate. Try a shorter link.';
+        console.error('QR generation error:', e);
+    }
 }
 
 // Download QR code as image
 function downloadQR() {
-    const qrCanvas = document.querySelector('#qrCode canvas');
-    if (!qrCanvas) {
+    const qrContainer = document.getElementById('qrCode');
+    const qrCanvas = qrContainer.querySelector('canvas');
+    const qrImg = qrContainer.querySelector('img');
+
+    let dataUrl = null;
+    if (qrCanvas) {
+        dataUrl = qrCanvas.toDataURL('image/png');
+    } else if (qrImg && qrImg.src && qrImg.src.startsWith('data:image')) {
+        dataUrl = qrImg.src;
+    }
+
+    if (!dataUrl) {
         alert('QR code not generated yet. Please wait a moment and try again.');
         return;
     }
     
     const link = document.createElement('a');
-    link.href = qrCanvas.toDataURL('image/png');
+    link.href = dataUrl;
     link.download = 'anniversary-memories-qr.png';
     link.click();
 }
